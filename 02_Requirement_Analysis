@@ -1,1 +1,408 @@
+Requirement Analysis Phase
+The Requirement Analysis Phase defines what the ServiceNow ACL lab must accomplish before any configuration is performed. The main objective is to translate the security requirement—users should access Institution Details records according to their roles and the Branch field value—into clear functional, security, and validation requirements.
 
+1. Business Requirement
+The organization maintains student/institution records in a custom ServiceNow table named u_institution_details.
+
+Each record contains a Branch value such as:
+
+ECE
+
+EEE
+
+CSE
+
+The organization requires branch-based record-level security. In this lab, EEE users should be able to access EEE records, while users without the required role should not be able to access the records.
+
+Administrators must retain unrestricted access.
+
+The access model is progressively expanded using four custom roles:
+
+Role	Purpose	Required Operation
+bb1	EEE record access	Read
+bb2	Create records	Create
+bb3	Modify records	Write
+bb4	Remove records	Delete
+admin	Administrative access	All operations
+
+2. User Requirements
+A test user must be created to validate the ACL behavior.
+
+Test user:
+
+User ID: EEE User
+
+First Name: EEE
+
+Last Name: User
+
+Email: eeeuser@gmail.com
+
+The user will be assigned the custom roles required for testing.
+
+Initially, the lab creates:
+
+bb1
+
+bb2
+
+bb3
+
+bb4
+
+The roles represent different levels of access rather than being treated as a single permission.
+
+3. Role-Based Access Requirements
+The access requirements should be clearly separated by operation.
+
+Read requirement
+A user must have the bb1 role to read Institution Details records.
+
+For the intended business rule:
+
+A non-admin user with bb1 should be permitted to access EEE records.
+
+Users without bb1 should not be able to read the protected records.
+
+Administrators with the admin role must be able to read all records regardless of Branch.
+
+Create requirement
+A user must have bb2 to create a new Institution Details record.
+
+The create ACL does not require a Branch data condition according to the lab specification.
+
+Therefore, the create permission is controlled primarily by the user's role.
+
+Write requirement
+A user must have bb3 to modify an existing record.
+
+The intended combined access model is:
+
+bb1 + bb3
+
+This allows the user to access the records through the read ACL and modify permitted records through the write ACL.
+
+Delete requirement
+A user must have bb4 to delete a record.
+
+The intended complete access model is:
+
+bb1 + bb2 + bb3 + bb4
+
+This allows the test user to read, create, modify, and delete records subject to the configured ACLs.
+
+4. Data Requirements
+A custom table must be created:
+
+Table Label: Institution Details
+Table Name: u_institution_details
+
+The table requires the following fields:
+
+Field	Type	Requirement
+Student Roll Number	Auto Number	Unique student identifier
+Student Name	Reference → User	Identifies student
+Faculty Name	Reference → User	Identifies faculty
+Branch	Choice	ECE, EEE, CSE
+Email	String	Student email
+Phone Number	String	Contact number
+Description	Multi-line String	Additional information
+
+The Branch field is particularly important because it is used as the basis for the record-level security requirement.
+
+5. Record Data Requirements
+The table must contain multiple test records with different Branch values.
+
+For example:
+
+Record	Branch
+Student 1	EEE
+Student 2	EEE
+Student 3	ECE
+Student 4	CSE
+Student 5	EEE
+Student 6	ECE
+Student 7	CSE
+
+This test data is necessary because ACL behavior cannot be properly the tester to determine whether the security configuration is actually filtering records according verified using only EEE records.
+
+The presence of ECE, EEE, and CSE records allows the tester to determine whether the security configuration is actually filtering records according to the intended requirement.
+
+6. Functional Requirements
+The system must satisfy the following functional requirements.
+
+FR-01 — User Creation
+
+The system must contain a test user named EEE User.
+
+FR-02 — Role Creation
+
+The system must contain the following custom roles:
+
+bb1, bb2, bb3, and bb4.
+
+FR-03 — Role Assignment
+
+The test user must be assigned the required roles for each stage of testing.
+
+FR-04 — Custom Table
+
+The system must contain the u_institution_details table.
+
+FR-05 — Branch Field
+
+The table must contain a Branch choice field with ECE, EEE, and CSE values.
+
+FR-06 — Test Records
+
+Multiple records must exist with different Branch values.
+
+FR-07 — Read Security
+
+The read ACL must evaluate the user's role and permit appropriate access.
+
+FR-08 — Create Security
+
+The create ACL must require bb2.
+
+FR-09 — Write Security
+
+The write ACL must require bb3.
+
+FR-10 — Delete Security
+
+The delete ACL must require bb4.
+
+FR-11 — Administrator Access
+
+Administrators must retain access to all records.
+
+7. Security Requirements
+The ACL design must follow the principle of least privilege.
+
+A user should receive only the permissions necessary for the operation they are authorized to perform.
+
+The intended permission model is:
+
+                    Institution Details
+                           |
+             +-------------+-------------+
+             |             |             |
+            READ          CREATE        WRITE
+             |             |             |
+            bb1           bb2           bb3
+             |
+       Branch condition
+             |
+            EEE
+
+Delete permission is additionally controlled by:
+
+DELETE → bb4
+
+Therefore, the user's effective access depends on both:
+
+User role
+
+ACL operation
+
+For the read requirement, the record's Branch value is also part of the access decision.
+
+8. Administrator Requirement
+The admin role is an exception to the normal role-based restrictions.
+
+The ACL script contains:
+
+if (gs.hasRole('admin')) {
+    return true;
+}
+
+Therefore, administrators should be able to access records regardless of whether the Branch is EEE, ECE, or CSE.
+
+The requirement can be represented as:
+
+Admin
+  |
+  +---- EEE record → Allow
+  |
+  +---- ECE record → Allow
+  |
+  +---- CSE record → Allow
+
+This requirement must be verified separately from normal-user testing.
+
+9. Read ACL Requirement
+The read ACL is the most important ACL in this lab because it demonstrates record-level access control.
+
+The intended logic is:
+
+                    User requests record
+                            |
+                            v
+                     Is user admin?
+                       /        \
+                     Yes         No
+                     |            |
+                   ALLOW      Has bb1?
+                                /   \
+                              Yes    No
+                               |      |
+                            Check      DENY
+                            Branch
+                               |
+                         Branch = EEE?
+                           /       \
+                         Yes       No
+                          |         |
+                        ALLOW      DENY
+
+This provides the expected security behavior:
+
+User	Branch	Expected Read
+Admin	EEE	Allow
+Admin	ECE	Allow
+Admin	CSE	Allow
+bb1 user	EEE	Allow
+bb1 user	ECE	Deny
+bb1 user	CSE	Deny
+No bb1	EEE	Deny
+No bb1	ECE	Deny
+No bb1	CSE	Deny
+
+Important requirement clarification: the ACL configuration should ensure that the Branch condition actually participates in the access decision. Simply checking gs.hasRole('bb1') in the script grants bb1 users access without checking whether the current record is EEE. If the requirement is truly "bb1 users can see only EEE records", the ACL logic must evaluate the current record's Branch value as well.
+
+10. Create ACL Requirement
+The create ACL must protect the creation operation independently from read access.
+
+Requirement:
+
+User has bb2 → Create allowed
+User does not have bb2 → Create denied
+
+For example:
+
+User Roles	Create
+bb1	Deny
+bb1 + bb2	Allow
+bb1 + bb2 + bb3	Allow
+bb1 + bb2 + bb3 + bb4	Allow
+admin	Allow
+
+This demonstrates that having read permission does not automatically grant create permission.
+
+11. Write ACL Requirement
+The write ACL controls modification of existing records.
+
+Requirement:
+
+User has bb3 → Write allowed
+User does not have bb3 → Write denied
+
+The intended test user therefore needs:
+
+bb1 + bb2 + bb3
+
+to achieve the complete read/create/write workflow described in the lab.
+
+12. Delete ACL Requirement
+The delete ACL provides the highest level of destructive access in this lab.
+
+Requirement:
+
+User has bb4 → Delete allowed
+User does not have bb4 → Delete denied
+
+The complete test configuration is:
+
+bb1 → Read
+bb2 → Create
+bb3 → Write
+bb4 → Delete
+
+This allows each ACL to be tested independently.
+
+13. Non-Functional Security Requirements
+The solution should also satisfy these security characteristics:
+
+Least privilege
+Users should not automatically receive create, write, or delete access merely because they can read records.
+
+Separation of permissions
+Each CRUD operation should have its own ACL requirement.
+
+Record-level protection
+Access must be determined at the record level where the Branch condition is applicable.
+
+Administrator override
+Administrators must retain full access for administration and troubleshooting.
+
+Consistent enforcement
+The ACLs should protect the table regardless of whether records are accessed through lists, forms, or other ServiceNow interfaces where the ACL applies.
+
+Auditability
+The configuration should be understandable and testable so that an administrator can determine why a particular user was allowed or denied access.
+
+14. Assumptions
+The requirement analysis assumes:
+
+The tester has administrator access to the ServiceNow instance.
+
+The security_admin role can be elevated when ACL configuration requires it.
+
+The custom roles bb1–bb4 can be created.
+
+The Branch field contains controlled choice values.
+
+Test records exist for ECE, EEE, and CSE.
+
+The test user can be impersonated for validation.
+
+ACL changes are saved and available before testing.
+
+Administrator access is intentionally unrestricted.
+
+15. Acceptance Criteria
+The lab can be considered successfully implemented when the following tests pass:
+
+Test ID	Scenario	Expected Result
+TC-01	Admin opens EEE record	Allowed
+TC-02	Admin opens ECE record	Allowed
+TC-03	Admin opens CSE record	Allowed
+TC-04	bb1 user opens EEE record	Allowed
+TC-05	bb1 user attempts ECE record	Denied
+TC-06	bb1 user attempts CSE record	Denied
+TC-07	User without bb1 attempts read	Denied
+TC-08	User without bb2 attempts create	Denied
+TC-09	bb2 user creates record	Allowed
+TC-10	User without bb3 attempts update	Denied
+TC-11	bb3 user updates permitted record	Allowed
+TC-12	User without bb4 attempts delete	Denied
+TC-13	bb4 user deletes permitted record	Allowed
+TC-14	Admin performs CRUD operations	Allowed
+
+16. Requirement Traceability
+The complete requirement can be summarized as:
+
+Business Requirement
+        |
+        v
+Protect Institution Details records
+        |
+        +-----------------------------+
+        |                             |
+        v                             v
+   Role Security                Record Security
+        |                             |
+   bb1 → Read                   Branch = EEE
+   bb2 → Create
+   bb3 → Write
+   bb4 → Delete
+        |
+        v
+   Admin Override
+        |
+        v
+   Full Access
+
+Final Requirement Statement
+The ServiceNow u_institution_details table shall implement role- and record-based access control using ACLs. Non-administrative users shall receive permissions according to the bb1, bb2, bb3, and bb4 roles. Read access shall additionally be restricted according to the Branch value so that the designated EEE user can access EEE records while unauthorized users cannot access protected records. Create, write, and delete operations shall be controlled independently through their respective ACLs, while administrators shall retain unrestricted access
