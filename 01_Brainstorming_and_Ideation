@@ -1,1 +1,116 @@
+Brainstorming & Ideation Phase
 
+The purpose of this phase is to identify the security problem, understand the access requirements, and design an ACL-based solution before implementing it in ServiceNow.
+
+1. Problem Identification
+
+The project focuses on protecting Institution Details records containing student information such as:
+
+Student Name
+Roll Number
+Faculty Name
+Email
+Phone Number
+Branch
+
+The main security requirement is to prevent unauthorized users from accessing or modifying these records.
+
+The system should ensure that:
+
+EEE users can access only EEE records.
+Users without the required role cannot access the records.
+Administrators have complete access.
+Different roles provide different permissions.
+2. User Requirements
+User/Role	Permission
+No custom role	No access
+bb1	Read EEE records
+bb1 + bb2	Read + Create
+bb1 + bb2 + bb3	Read + Create + Write
+bb1 + bb2 + bb3 + bb4	Read + Create + Write + Delete
+Admin	Full access
+
+The permissions are cumulative, meaning each additional role provides an additional operation.
+
+3. Proposed Security Solution
+
+ServiceNow Access Control Lists (ACLs) will be used to control access.
+
+Four types of ACLs are planned:
+
+Read ACL → Controls who can view records.
+Create ACL → Controls who can create records.
+Write ACL → Controls who can modify records.
+Delete ACL → Controls who can delete records.
+
+The Read ACL will use scripted logic because access depends on both the user's role and the record's Branch value.
+
+4. Role-Based Security Design
+
+Four custom roles will be created:
+
+bb1 → Read
+bb2 → Create
+bb3 → Write
+bb4 → Delete
+
+This creates a simple permission hierarchy:
+
+bb1 → bb2 → bb3 → bb4
+
+Additional roles provide additional capabilities.
+
+5. Branch-Based Access
+
+The Branch field will be used as the main condition for record-level security.
+
+The basic logic is:
+
+Administrator → Allow full access
+
+Authorized EEE user → Allow EEE records
+
+Unauthorized user → Deny access
+
+Therefore, the ACL evaluates both:
+
+User Role + Record Branch → Access Decision
+
+6. Institution Details Table
+
+A custom table named Institution Details will be created with fields such as:
+
+Field	Purpose
+Student Roll Number	Identifies the student
+Student Name	Stores student name
+Faculty Name	Stores faculty information
+Branch	Identifies ECE/EEE/CSE
+Email	Stores email
+Phone	Stores phone number
+Description	Additional information
+
+The Branch field will contain:
+
+ECE
+EEE
+CSE
+
+This allows different branch records to be created and used for ACL testing.
+
+7. Testing Plan
+
+The following scenarios will be tested:
+
+bb1 user → Verify that only EEE records can be viewed.
+User without a custom role → Verify that access is denied.
+bb1 + bb2 → Verify Create permission.
+bb1 + bb2 + bb3 → Verify Write/Edit permission.
+bb1 + bb2 + bb3 + bb4 → Verify Delete permission.
+Administrator → Verify complete access to all records.
+8. Expected Outcome
+
+The brainstorming phase establishes a clear security model before implementation.
+
+The final security flow is:
+
+User → Role Verification → ACL Evaluation → Branch Verification → Access Granted / Denied
