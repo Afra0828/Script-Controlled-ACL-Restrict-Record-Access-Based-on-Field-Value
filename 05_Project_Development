@@ -1,1 +1,193 @@
+PROJECT DEVELOPMENT
 
+1. Project Title
+
+Script-Controlled ACL – Restrict Record Access Based on Field Value
+
+2. Development Environment
+
+The project was developed using:
+
+Platform: ServiceNow
+Application: ServiceNow
+User Role: System Administrator / Security Admin
+Custom Table: Institution Details
+ACL: Access Control List
+3. User Creation
+
+A test user was created for testing the ACL functionality.
+
+User Details
+User ID: EEE User
+First Name: EEE
+Last Name: User
+Email: eeeuser@gmail.com
+
+Screenshot: Add the screenshot of the user you created.
+
+4. Role Creation
+
+Four custom roles were created to control different operations.
+
+Role	Purpose
+bb1	Read
+bb2	Create
+bb3	Write/Edit
+bb4	Delete
+
+The required roles were assigned to the test user.
+
+Screenshot: Add screenshot of your roles.
+
+5. Institution Details Table Creation
+
+A custom table named Institution Details was created.
+
+Table name:
+
+u_institution_details
+
+Fields created
+Field	Type
+Student Roll Number	Auto Number
+Student Name	Reference – User
+Faculty Name	Reference – User
+Branch	Choice
+Email	String
+Phone Number	String
+Description	Multi String
+
+The Branch field contains:
+
+ECE
+EEE
+CSE
+
+Screenshot: Add screenshot of your table and fields.
+
+6. Sample Records
+
+Multiple student/institution records were created with different branch values.
+
+Example:
+
+Student	Branch
+Student 1	EEE
+Student 2	ECE
+Student 3	CSE
+Student 4	EEE
+
+Screenshot: Add screenshot of your records.
+
+7. Read ACL Development
+
+A Read ACL was created for the u_institution_details table.
+
+Configuration
+Type: Record
+Operation: Read
+Name: u_institution_details
+Active: True
+Advanced: True
+Required Role: bb1
+Data Condition: Branch is EEE
+Script
+(function () {
+    if (gs.hasRole('admin')) {
+        return true;
+    }
+
+    if (gs.hasRole('bb1')) {
+        return true;
+    }
+
+    return false;
+})();
+
+The ACL controls whether a user can read the records.
+
+Screenshot: Add screenshot of your Read ACL.
+
+8. Create ACL Development
+
+A Create ACL was created.
+
+Configuration
+Type: Record
+Operation: Create
+Name: u_institution_details
+Active: True
+Required Role: bb2
+
+The bb2 role allows the user to create records.
+
+Screenshot: Add screenshot of your Create ACL.
+
+9. Write ACL Development
+
+A Write ACL was created.
+
+Configuration
+Type: Record
+Operation: Write
+Name: u_institution_details
+Active: True
+Required Role: bb3
+
+The bb3 role allows the user to edit records.
+
+Screenshot: Add screenshot of your Write ACL.
+
+10. Delete ACL Development
+
+A Delete ACL was created.
+
+Configuration
+Type: Record
+Operation: Delete
+Name: u_institution_details
+Active: True
+Required Role: bb4
+
+The bb4 role allows the user to delete records.
+
+Screenshot: Add screenshot of your Delete ACL.
+
+11. User Impersonation
+
+Different users were impersonated to verify the ACL functionality.
+
+The following users/roles were tested:
+
+EEE user
+User without required role
+Administrator
+
+Screenshot: Add your impersonation/testing screenshots.
+
+12. Development Flow
+
+The overall development process was:
+
+Create User
+     ↓
+Create Roles
+     ↓
+Create Institution Details Table
+     ↓
+Create Fields
+     ↓
+Create Sample Records
+     ↓
+Create Read ACL
+     ↓
+Create Create ACL
+     ↓
+Create Write ACL
+     ↓
+Create Delete ACL
+     ↓
+Test Using Different Users
+13. Development Outcome
+
+The ServiceNow ACL system was successfully developed to control access to the Institution Details table based on user roles and branch information.
