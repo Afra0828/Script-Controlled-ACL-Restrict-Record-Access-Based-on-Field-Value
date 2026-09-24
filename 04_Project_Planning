@@ -1,1 +1,596 @@
+Project Planning Phase
 
+ The **Project Planning Phase** converts the requirements identified in the Requirement Analysis Phase into a structured implementation plan. The objective is to define the activities, sequence, resources, roles, test strategy, and expected deliverables required to implement the **Script-Controlled ACL – Restrict Record Access Based on Field Value** lab in ServiceNow.
+
+ ## 1\. Project Objective
+
+ The objective of this project is to implement a secure custom ServiceNow table in which access to records is controlled using **role-based ACLs and a Branch field condition**.
+
+ The planned access model is:
+
+ | Operation | Required Role | Purpose |
+| --- | --- | --- |
+| Read | `bb1` | Access permitted records |
+| Create | `bb2` | Create new records |
+| Write | `bb3` | Modify existing records |
+| Delete | `bb4` | Delete records |
+| Administrative access | `admin` | Full access |
+
+For the read requirement, the intended rule is that an EEE-authorized user can access **EEE records**, while administrators can access all records.
+
+---
+
+ ## 2\. Project Scope
+
+ ### In Scope
+
+ The project includes:
+
+ - Creation of a test ServiceNow user.
+- Creation of four custom roles.
+- Assignment of roles to the test user.
+- Creation of the `u_institution_details` custom table.
+- Creation of required fields.
+- Creation of sample ECE, EEE, and CSE records.
+- Configuration of READ ACL.
+- Configuration of CREATE ACL.
+- Configuration of WRITE ACL.
+- Configuration of DELETE ACL.
+- Script-controlled access validation.
+- User impersonation testing.
+- Administrator access testing.
+- Verification of access through lists and forms.
+
+ ### Out of Scope
+
+ The following are not required for this lab:
+
+ - Integration with external systems.
+- Production deployment.
+- Automated testing using ATF.
+- Custom Service Portal development.
+- Email notifications.
+- Performance/load testing.
+- Complex approval workflows.
+- Integration with external identity providers.
+
+---
+
+ ## 3\. Project Work Breakdown Structure
+
+ The project can be divided into the following phases:
+
+```
+Project
+│
+├── 1. Environment Preparation
+│
+├── 2. User and Role Configuration
+│
+├── 3. Table and Field Configuration
+│
+├── 4. Test Data Creation
+│
+├── 5. READ ACL Implementation
+│
+├── 6. CREATE ACL Implementation
+│
+├── 7. WRITE ACL Implementation
+│
+├── 8. DELETE ACL Implementation
+│
+├── 9. Security Testing
+│
+└── 10. Documentation and Final Validation
+```
+
+---
+
+ # 4\. Phase 1 – Environment Preparation
+
+ The first activity is to verify that the ServiceNow instance is ready for development.
+
+ ### Activities
+
+ 1. Log in using an administrator account.
+2. Verify access to:
+   - User Administration
+   - System Definition
+   - System Security
+3. Verify that the administrator can elevate to `security_admin`.
+4. Confirm that custom tables and roles can be created.
+5. Ensure that impersonation is available for testing.
+
+ ### Expected Result
+
+ The ServiceNow environment is ready for ACL development and testing.
+
+---
+
+ # 5\. Phase 2 – User and Role Configuration
+
+ The next activity is to establish the security identities used by the ACLs.
+
+ ### User
+
+ Create:
+
+```
+User ID: EEE User
+First Name: EEE
+Last Name: User
+Email: eeeuser@gmail.com
+```
+
+ ### Roles
+
+ Create:
+
+```
+bb1
+bb2
+bb3
+bb4
+```
+
+ ### Planned Role Responsibilities
+
+```
+bb1 → Read
+bb2 → Create
+bb3 → Write
+bb4 → Delete
+```
+
+ The test user will be assigned the roles needed for the respective test cases.
+
+ ### Deliverable
+
+ A configured test user with the required custom roles.
+
+---
+
+ # 6\. Phase 3 – Table and Field Configuration
+
+ Create the custom table:
+
+```
+Label: Institution Details
+Name: u_institution_details
+```
+
+ The table will contain:
+
+ | Field | Type |
+| --- | --- |
+| Student Roll Number | Auto Number |
+| Student Name | Reference → User |
+| Faculty Name | Reference → User |
+| Branch | Choice |
+| Email | String |
+| Phone Number | String |
+| Description | Multi-line String |
+
+The Branch field will contain:
+
+```
+ECE
+EEE
+CSE
+```
+
+ ### Planning Consideration
+
+ The **Branch** field is the critical field for the record-level security requirement.
+
+ Therefore, it must be populated consistently in the test data so that ACL behavior can be verified.
+
+ ### Deliverable
+
+ A functional `u_institution_details` table containing all required fields.
+
+---
+
+ # 7\. Phase 4 – Test Data Creation
+
+ Multiple records must be created to represent different branches.
+
+ Example:
+
+ | Student | Branch |
+| --- | --- |
+| Student 001 | EEE |
+| Student 002 | EEE |
+| Student 003 | ECE |
+| Student 004 | CSE |
+| Student 005 | EEE |
+| Student 006 | ECE |
+| Student 007 | CSE |
+
+The test data must contain **at least one record for each branch**.
+
+ This is important because the ACL cannot be adequately validated if every record belongs to the same branch.
+
+ ### Deliverable
+
+ A representative dataset containing EEE, ECE, and CSE records.
+
+---
+
+ # 8\. Phase 5 – READ ACL Planning
+
+ The READ ACL is the primary security component of this project.
+
+ ### Configuration
+
+```
+Type: Record
+Operation: Read
+Name: u_institution_details
+Active: True
+Advanced: True
+Required Role: bb1
+Data Condition: Branch is EEE
+```
+
+ The script will provide the administrator exception and additional role-based logic.
+
+ ### Planned Decision Process
+
+```
+             User requests record
+                     |
+                     v
+              Is user admin?
+                /       \
+              Yes        No
+              |           |
+            Allow      Has bb1?
+                         /   \
+                       Yes    No
+                        |      |
+                  Branch EEE   Deny
+                    /    \
+                  Yes     No
+                   |       |
+                 Allow    Deny
+```
+
+ ### Important Implementation Check
+
+ The final implementation must ensure that the script itself does not accidentally bypass the Branch condition.
+
+ For example, this logic:
+
+```
+if (gs.hasRole('bb1')) {
+    return true;
+}
+```
+
+ by itself means that every `bb1` user passes the script, regardless of Branch.
+
+ Therefore, during implementation, the Branch condition must actually participate in the authorization decision if the requirement is **"EEE users can see only EEE records."**
+
+ ### Deliverable
+
+ A functioning READ ACL that enforces the intended record-level restriction.
+
+---
+
+ # 9\. Phase 6 – CREATE ACL Planning
+
+ The CREATE ACL will control whether a user can create a new Institution Details record.
+
+ ### Configuration
+
+```
+Type: Record
+Operation: Create
+Name: u_institution_details
+Active: True
+Required Role: bb2
+```
+
+ No Branch data condition is planned for this ACL according to the lab specification.
+
+ ### Expected Access
+
+```
+bb1 only                 → No Create
+bb1 + bb2                → Create
+bb1 + bb2 + bb3          → Create
+bb1 + bb2 + bb3 + bb4    → Create
+admin                    → Create
+```
+
+ ### Deliverable
+
+ A CREATE ACL that requires `bb2`.
+
+---
+
+ # 10\. Phase 7 – WRITE ACL Planning
+
+ The WRITE ACL will control modification of existing records.
+
+ ### Configuration
+
+```
+Type: Record
+Operation: Write
+Name: u_institution_details
+Active: True
+Required Role: bb3
+```
+
+ No additional Branch data condition is planned according to the lab specification.
+
+ ### Expected Access
+
+ A user with the required read and write permissions should be able to open and modify permitted records.
+
+```
+bb1 + bb2       → Cannot write
+bb1 + bb2 + bb3 → Can write
+```
+
+ ### Deliverable
+
+ A WRITE ACL requiring `bb3`.
+
+---
+
+ # 11\. Phase 8 – DELETE ACL Planning
+
+ The DELETE ACL controls removal of existing records.
+
+ ### Configuration
+
+```
+Type: Record
+Operation: Delete
+Name: u_institution_details
+Active: True
+Required Role: bb4
+```
+
+ ### Expected Access
+
+```
+bb1 + bb2 + bb3       → Cannot delete
+bb1 + bb2 + bb3 + bb4 → Can delete
+```
+
+ ### Deliverable
+
+ A DELETE ACL requiring `bb4`.
+
+---
+
+ # 12\. Access Control Matrix
+
+ The final planned permission model is:
+
+ | User Configuration | Read | Create | Write | Delete |
+| --- | --- | --- | --- | --- |
+| No custom roles | ❌ | ❌ | ❌ | ❌ |
+| `bb1` | ✅\* | ❌ | ❌ | ❌ |
+| `bb1 + bb2` | ✅\* | ✅ | ❌ | ❌ |
+| `bb1 + bb2 + bb3` | ✅\* | ✅ | ✅ | ❌ |
+| `bb1 + bb2 + bb3 + bb4` | ✅\* | ✅ | ✅ | ✅ |
+| `admin` | ✅ | ✅ | ✅ | ✅ |
+
+`*` Read access is subject to the Branch-based requirement.
+
+---
+
+ # 13\. Testing Strategy
+
+ Testing will be performed using **impersonation** so that the ACL behavior can be observed from different security contexts.
+
+ ### Test Users
+
+ At minimum, testing should cover:
+
+ - Administrator
+- EEE user with required roles
+- User without `bb1`
+
+ ### Testing Sequence
+
+ The planned sequence is:
+
+ 1. Test administrator access.
+2. Test read access with `bb1`.
+3. Test read access without `bb1`.
+4. Add `bb2` and test Create.
+5. Add `bb3` and test Write.
+6. Add `bb4` and test Delete.
+7. Verify that unauthorized operations remain unavailable.
+8. Verify behavior on both forms and lists.
+
+---
+
+ # 14\. Test Case Planning
+
+ | Test Case | Configuration | Action | Expected Result |
+| --- | --- | --- | --- |
+| TC01 | Admin | View EEE | Allowed |
+| TC02 | Admin | View ECE | Allowed |
+| TC03 | Admin | View CSE | Allowed |
+| TC04 | `bb1` | View EEE | Allowed |
+| TC05 | `bb1` | View ECE | Denied/not visible |
+| TC06 | `bb1` | View CSE | Denied/not visible |
+| TC07 | No `bb1` | Open protected records | Denied |
+| TC08 | `bb1 + bb2` | Create | Allowed |
+| TC09 | `bb1` | Create | Denied |
+| TC10 | `bb1 + bb2 + bb3` | Update | Allowed |
+| TC11 | `bb1 + bb2` | Update | Denied |
+| TC12 | `bb1 + bb2 + bb3 + bb4` | Delete | Allowed |
+| TC13 | `bb1 + bb2 + bb3` | Delete | Denied |
+
+---
+
+ # 15\. Project Timeline
+
+ The total lab duration is **3 hours**.
+
+ A suitable planning schedule is:
+
+ | Activity | Planned Time |
+| --- | --- |
+| Environment preparation | 10 min |
+| User creation | 10 min |
+| Role creation and assignment | 15 min |
+| Table creation | 20 min |
+| Field configuration | 20 min |
+| Test data creation | 15 min |
+| READ ACL | 25 min |
+| CREATE ACL | 10 min |
+| WRITE ACL | 10 min |
+| DELETE ACL | 10 min |
+| Testing and troubleshooting | 25 min |
+| Documentation/final verification | 10 min |
+| **Total** | **180 min / 3 hrs** |
+
+---
+
+ # 16\. Project Dependencies
+
+ The project activities have the following dependencies:
+
+```
+User
+  ↓
+Roles
+  ↓
+Table
+  ↓
+Fields
+  ↓
+Test Data
+  ↓
+READ ACL
+  ↓
+CREATE ACL
+  ↓
+WRITE ACL
+  ↓
+DELETE ACL
+  ↓
+Testing
+```
+
+ For example, the READ ACL cannot be properly tested until:
+
+ - The table exists.
+- The Branch field exists.
+- Test records exist.
+- The test user has the appropriate role.
+
+---
+
+ # 17\. Risk Planning
+
+ | Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Incorrect role assignment | User receives unexpected access | Verify roles before testing |
+| Incorrect Branch values | Read test results become unreliable | Create records for all three branches |
+| ACL condition incorrectly configured | Unauthorized records may be visible | Test each branch separately |
+| Script bypasses Branch condition | `bb1` users may see unintended records | Test EEE, ECE, and CSE independently |
+| Missing `security_admin` | ACL cannot be configured | Elevate role before ACL creation |
+| ACL cache/session effects | Old behavior may appear during testing | Re-test after ACL changes |
+| Admin testing only | Security issue may remain undetected | Always impersonate non-admin users |
+| Create/Write/Delete roles overlap incorrectly | Excess permissions | Test each CRUD operation independently |
+
+---
+
+ # 18\. Project Deliverables
+
+ At the end of the project, the following items should be available:
+
+ 1. **Test user**
+   - `EEE User`
+2. ## **Custom roles**
+   - `bb1`
+   - `bb2`
+   - `bb3`
+   - `bb4`
+3. **Custom table**
+   - `u_institution_details`
+4. **Required table fields**
+   - Student Roll Number
+   - Student Name
+   - Faculty Name
+   - Branch
+   - Email
+   - Phone Number
+   - Description
+5. **Sample records**
+   - EEE records
+   - ECE records
+   - CSE records
+6. **ACLs**
+   - READ ACL
+   - CREATE ACL
+   - WRITE ACL
+   - DELETE ACL
+7. **Testing evidence**
+   - Authorized access
+   - Unauthorized access
+   - Administrator access
+   - CRUD verification
+8. **Final documentation**
+   - Configuration details
+   - ACL logic
+   - Test results
+   - Screenshots/evidence, where required
+
+---
+
+ # 19\. Success Criteria
+
+ The project will be considered successfully planned and implemented when:
+
+ - The custom table is available.
+- The required roles are created and assigned correctly.
+- EEE, ECE, and CSE records exist.
+- READ access is restricted according to the Branch requirement.
+- Users without the required role cannot access protected records.
+- Administrators can access all records.
+- `bb2` controls creation.
+- `bb3` controls modification.
+- `bb4` controls deletion.
+- Each CRUD operation can be independently tested.
+- The observed results match the defined access-control matrix.
+
+ ## Project Planning Summary
+
+ The project will follow a **configuration → security implementation → testing → validation** approach:
+
+```
+Requirement Analysis
+        ↓
+Project Planning
+        ↓
+User & Role Setup
+        ↓
+Table & Field Setup
+        ↓
+Test Data
+        ↓
+READ ACL
+        ↓
+CREATE ACL
+        ↓
+WRITE ACL
+        ↓
+DELETE ACL
+        ↓
+Impersonation Testing
+        ↓
+Validation & Documentation
+```
+
+ The key planning principle is to **separate each CRUD permission into its own ACL while using the Branch field as the record-level security criterion for READ access**. This makes the implementation easier to test, troubleshoot, and demonstrate.
