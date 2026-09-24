@@ -1,1 +1,178 @@
+Project Design Phase
 
+The **Project Design Phase** focuses on converting the requirements identified during the brainstorming phase into a structured security design. In this phase, the users, roles, table, fields, ACLs, access conditions, and testing approach are planned before the actual implementation in ServiceNow.
+
+### 3.1 System Architecture Design
+
+The project is designed using the **ServiceNow ACL security framework**. The system consists of a custom **Institution Details** table protected by different ACLs.
+
+The basic security flow is:
+
+**User → Role Verification → ACL Evaluation → Field/Record Condition → Access Granted or Denied**
+
+The design ensures that users receive only the permissions associated with their assigned roles.
+
+### 3.2 User and Role Design
+
+Four custom roles are designed to provide different levels of access.
+
+| Role      | Designed Permission   |
+| --------- | --------------------- |
+| **bb1**   | Read/View permission  |
+| **bb2**   | Create permission     |
+| **bb3**   | Write/Edit permission |
+| **bb4**   | Delete permission     |
+| **admin** | Full access           |
+
+The roles are cumulative for the test user. Therefore, the EEE User is assigned **bb1, bb2, bb3, and bb4** to test the complete access-control workflow.
+
+### 3.3 Table Design
+
+A custom table named **Institution Details** is designed to store student-related information.
+
+**Table Name:** `u_institution_details`
+
+The table contains the following fields:
+
+| Field               | Type              | Purpose                       |
+| ------------------- | ----------------- | ----------------------------- |
+| Student Roll Number | Auto Number       | Unique student identification |
+| Student Name        | Reference – User  | Stores student information    |
+| Faculty Name        | Reference – User  | Stores faculty information    |
+| Branch              | Choice            | Identifies ECE, EEE, or CSE   |
+| Email               | String            | Stores email address          |
+| Phone Number        | String            | Stores contact number         |
+| Description         | Multi-line String | Stores additional information |
+
+The **Branch** field is particularly important because it is used as the record-level condition for the READ ACL.
+
+### 3.4 Branch-Based Access Design
+
+The project is designed to contain records belonging to different branches:
+
+* **ECE**
+* **EEE**
+* **CSE**
+
+The security requirement is that the appropriate user should be able to access **EEE records**, while records belonging to other branches should not be exposed through the intended READ access rule.
+
+This provides realistic test data for validating the ACL configuration.
+
+### 3.5 READ ACL Design
+
+A **Record – Read ACL** is designed for the `u_institution_details` table.
+
+The design includes:
+
+* **Operation:** Read
+* **Table:** `u_institution_details`
+* **Required Role:** `bb1`
+* **Data Condition:** Branch is EEE
+* **Advanced:** Enabled
+* **Script:** Used to handle administrator access and role-based evaluation.
+
+The intended logic is:
+
+**Administrator → Allow access**
+
+**Authorized EEE user → Allow access when the record satisfies the EEE condition**
+
+**Unauthorized user → Deny access**
+
+This ACL forms the main record-level security mechanism of the project.
+
+### 3.6 CREATE ACL Design
+
+A separate **Create ACL** is designed to control the creation of new Institution Details records.
+
+The configuration includes:
+
+* **Operation:** Create
+* **Table:** `u_institution_details`
+* **Required Role:** `bb2`
+
+The purpose of this ACL is to ensure that only users having the required creation permission can create new records.
+
+### 3.7 WRITE ACL Design
+
+A **Write ACL** is designed to control modification of existing records.
+
+The configuration includes:
+
+* **Operation:** Write
+* **Table:** `u_institution_details`
+* **Required Role:** `bb3`
+
+This prevents users without the required write permission from modifying existing records.
+
+### 3.8 DELETE ACL Design
+
+A **Delete ACL** is designed to control the removal of records.
+
+The configuration includes:
+
+* **Operation:** Delete
+* **Table:** `u_institution_details`
+* **Required Role:** `bb4`
+
+Only users with the required deletion permission should be able to delete records.
+
+### 3.9 Permission Hierarchy Design
+
+The project follows a progressive permission model:
+
+**bb1 → Read**
+
+↓
+
+**bb2 → Create**
+
+↓
+
+**bb3 → Write**
+
+↓
+
+**bb4 → Delete**
+
+This design makes it possible to test each type of operation independently and then verify the complete combination of permissions.
+
+### 3.10 Administrator Access Design
+
+Administrators are designed to retain unrestricted access to the table. The READ ACL script includes an administrator check so that administrative users can access records regardless of the branch value.
+
+This is useful for system administration, troubleshooting, and security testing.
+
+### 3.11 Security Validation Design
+
+The project design includes several validation scenarios:
+
+1. Test an EEE user with **bb1** and verify READ access.
+2. Verify that records from other branches are restricted according to the configured condition.
+3. Test a user without the required role and verify that access is denied.
+4. Add **bb2** and verify CREATE permission.
+5. Add **bb3** and verify WRITE permission.
+6. Add **bb4** and verify DELETE permission.
+7. Test the administrator account and verify administrative access.
+
+### 3.12 Overall Project Design
+
+The complete design can be represented as:
+
+**Institution Details Table**
+↓
+**ACL Security Layer**
+↓
+**Role + Operation + Record Condition**
+↓
+**Access Decision**
+↓
+**Allow / Deny**
+
+The project therefore uses a combination of **role-based access control and record-level security**. The design provides a systematic method for controlling who can read, create, modify, and delete records in the ServiceNow custom table.
+
+### 3.13 Expected Design Result
+
+The final design is intended to provide **controlled and secure access to Institution Details records**. Each ACL has a specific responsibility, while the combination of roles and the Branch field condition provides a structured security mechanism.
+
+This design also makes the system easier to test and maintain because **READ, CREATE, WRITE, and DELETE permissions are separated into individual ACL configurations**.
