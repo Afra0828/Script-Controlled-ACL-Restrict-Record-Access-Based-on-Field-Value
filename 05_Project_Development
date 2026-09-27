@@ -23,7 +23,6 @@ First Name: EEE
 Last Name: User
 Email: eeeuser@gmail.com
 
-Screenshot: Add the screenshot of the user you create
 
 4. Role Creation
 
@@ -37,7 +36,6 @@ bb4	Delete
 
 The required roles were assigned to the test user.
 
-Screenshot: Add screenshot of your roles.
 
 5. Institution Details Table Creation
 
@@ -63,7 +61,6 @@ ECE
 EEE
 CSE
 
-Screenshot: Add screenshot of your table and fields.
 
 6. Sample Records
 
@@ -77,7 +74,6 @@ Student 2	ECE
 Student 3	CSE
 Student 4	EEE
 
-Screenshot: Add screenshot of your records.
 
 7. Read ACL Development
 
@@ -106,7 +102,6 @@ Script
 
 The ACL controls whether a user can read the records.
 
-Screenshot: Add screenshot of your Read ACL.
 
 8. Create ACL Development
 
@@ -121,7 +116,6 @@ Required Role: bb2
 
 The bb2 role allows the user to create records.
 
-Screenshot: Add screenshot of your Create ACL.
 
 9. Write ACL Development
 
@@ -136,7 +130,6 @@ Required Role: bb3
 
 The bb3 role allows the user to edit records.
 
-Screenshot: Add screenshot of your Write ACL.
 
 10. Delete ACL Development
 
@@ -151,7 +144,6 @@ Required Role: bb4
 
 The bb4 role allows the user to delete records.
 
-Screenshot: Add screenshot of your Delete ACL.
 
 11. User Impersonation
 
@@ -163,7 +155,6 @@ EEE user
 User without required role
 Administrator
 
-Screenshot: Add your impersonation/testing screenshots.
 
 12. Development Flow
 
@@ -188,6 +179,8 @@ Create Write ACL
 Create Delete ACL
      ↓
 Test Using Different Users
+
+
 13. Development Outcome
 
 The ServiceNow ACL system was successfully developed to control access to the Institution Details table based on user roles and branch information.
